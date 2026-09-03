@@ -138,4 +138,3 @@ pertence a exatamente um salão e tem um papel (`owner` ou `staff`).
 - Para uso com muitos salões simultâneos em produção, recomenda-se migrar
   de SQLite para Postgres (a camada `src/db/` foi isolada para facilitar
   essa troca).
-# salao-saas
