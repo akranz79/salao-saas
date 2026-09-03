@@ -21,12 +21,24 @@ const sqlite = new DatabaseSync(path.join(dataDir, "salao.db"));
 sqlite.exec("PRAGMA journal_mode = WAL");
 sqlite.exec("PRAGMA foreign_keys = ON");
 
-// Apply any pending migrations every time the server process boots. This is
-// what `npm run db:migrate` does too, but running it here as well means the
-// schema always exists regardless of whether a given hosting platform
-// actually honors a custom start command — it's cheap and a no-op once the
-// schema is up to date, so there's no real downside to doing it twice.
-applyMigrations(sqlite, (msg) => console.log(`[db] ${msg}`));
+// Apply any pending migrations every time the server process actually boots
+// to serve traffic. This is what `npm run db:migrate` does too, but running
+// it here as well means the schema always exists regardless of whether a
+// given hosting platform actually honors a custom start command.
+//
+// We deliberately skip this during `next build`: Next.js's "Collecting page
+// data" step imports every route/layout module (this one included) across
+// up to dozens of parallel worker processes just to statically analyze
+// them — none of them actually run real queries at build time, so there's
+// nothing to migrate for yet, and doing it anyway means many processes
+// racing to create the same tables in the same (throwaway, build-local)
+// sqlite file at once. Next sets NEXT_PHASE=phase-production-build on
+// process.env for exactly this kind of build-vs-runtime check, and worker
+// processes inherit it.
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+if (!isBuildPhase) {
+  applyMigrations(sqlite, (msg) => console.log(`[db] ${msg}`));
+}
 
 // drizzle's sqlite-proxy driver expects rows as plain arrays of values in
 // column order (not objects keyed by column name) — this mirrors how
