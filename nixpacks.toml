@@ -1,0 +1,13 @@
+# Pins the Node.js version used by Railway's Nixpacks builder.
+#
+# This project relies on `node:sqlite`, a module built into Node.js itself
+# (stable from Node 22.5+) instead of a native/compiled sqlite package —
+# precisely so `npm install` never needs a C++ toolchain. But that only
+# works if the *build* environment also uses Node 22+: if the builder falls
+# back to an older default Node version, `import "node:sqlite"` fails as
+# soon as any page that touches the database is loaded, which surfaces as
+# a generic "Failed to collect page data for /some-route" error during
+# `next build`. Pinning the version here (and in `.nvmrc` / `engines` in
+# package.json, as a fallback for other platforms) avoids that entirely.
+[phases.setup]
+nixPkgs = ["nodejs_22"]
