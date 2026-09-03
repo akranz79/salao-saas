@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import * as dbSchema from "./schema";
+import { applyMigrations } from "./apply-migrations";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -19,6 +20,13 @@ if (!fs.existsSync(dataDir)) {
 const sqlite = new DatabaseSync(path.join(dataDir, "salao.db"));
 sqlite.exec("PRAGMA journal_mode = WAL");
 sqlite.exec("PRAGMA foreign_keys = ON");
+
+// Apply any pending migrations every time the server process boots. This is
+// what `npm run db:migrate` does too, but running it here as well means the
+// schema always exists regardless of whether a given hosting platform
+// actually honors a custom start command — it's cheap and a no-op once the
+// schema is up to date, so there's no real downside to doing it twice.
+applyMigrations(sqlite, (msg) => console.log(`[db] ${msg}`));
 
 // drizzle's sqlite-proxy driver expects rows as plain arrays of values in
 // column order (not objects keyed by column name) — this mirrors how
